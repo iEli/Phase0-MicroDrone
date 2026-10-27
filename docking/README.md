@@ -137,3 +137,21 @@ stale inputs, timeout boundaries, return triggers, retries/reset, and actual
 MotionStub feedback through touchdown followed by explicit disarming. Wiring
 these values into the central coordinator and running the full mission/retry
 scenarios remains integration-team work.
+
+## Continuous integration
+
+[Docking CI](../.github/workflows/docking-ci.yml) runs the docking, Safety
+command-check, and Safety policy suites on Ubuntu 24.04 with Python 3.12 and
+3.14. It runs for pull requests and pushes to `main` affecting docking, Motion,
+Safety, the covered tests, the workflow, or the integration contract. It can also
+be started manually from GitHub Actions. The suites use only Python's standard
+library and local synthetic modules; no dependency installation or PX4 submodule
+checkout is needed.
+
+To run the same checks locally from the repository root:
+
+```bash
+python -B -m unittest discover -s tests -p 'test_docking*.py' -v
+python -B -m unittest discover -s tests -p 'test_command_check.py' -v
+python -B -m unittest discover -s tests -p 'test_safety_policy.py' -v
+```
