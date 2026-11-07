@@ -62,4 +62,13 @@ jobs:
 
       - name: State-machine suite
         if: ${{ !cancelled() }}
-        run: python -B -m pytest state_machine/tests motion_engine/tests/test_state_machine_alignment.py -v
+        run: python -B -m pytest state_machine/tests motion_engine/tests/test_state_machine_alignment.py -v --junitxml=test-results/state-machine-1.xml
+
+      - name: Upload test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: state-machine-test-reports-python-${{ matrix.python-version }}-attempt-${{ github.run_attempt }}
+          path: test-results/*.xml
+          retention-days: 14
+          if-no-files-found: warn

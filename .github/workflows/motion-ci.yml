@@ -62,4 +62,13 @@ jobs:
 
       - name: Motion suite
         if: ${{ !cancelled() }}
-        run: python -B -m pytest motion_engine/tests -v
+        run: python -B -m pytest motion_engine/tests -v --junitxml=test-results/motion-1.xml
+
+      - name: Upload test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: motion-test-reports-python-${{ matrix.python-version }}-attempt-${{ github.run_attempt }}
+          path: test-results/*.xml
+          retention-days: 14
+          if-no-files-found: warn

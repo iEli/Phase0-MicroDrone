@@ -60,12 +60,21 @@ jobs:
 
       - name: Safety policy
         if: ${{ !cancelled() }}
-        run: python -B -m unittest discover -s tests -p 'test_safety*.py' -v
+        run: python -B -m pytest tests/test_safety*.py -v --junitxml=test-results/safety-1.xml
 
       - name: Command checks
         if: ${{ !cancelled() }}
-        run: python -B -m unittest discover -s tests -p 'test_command_check.py' -v
+        run: python -B -m pytest tests/test_command_check.py -v --junitxml=test-results/safety-2.xml
 
       - name: Motion adapter
         if: ${{ !cancelled() }}
-        run: python -B -m pytest motion_engine/tests/test_safety_adapter.py -v
+        run: python -B -m pytest motion_engine/tests/test_safety_adapter.py -v --junitxml=test-results/safety-3.xml
+
+      - name: Upload test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: safety-test-reports-python-${{ matrix.python-version }}-attempt-${{ github.run_attempt }}
+          path: test-results/*.xml
+          retention-days: 14
+          if-no-files-found: warn

@@ -23,9 +23,10 @@ not change mission behavior or deploy anything.
 
 ## Dependencies and local reproduction
 
-Docking's unittest suites need only the standard library. The pytest-based jobs
-install [requirements-ci.txt](../requirements-ci.txt); CV additionally installs
-its existing [requirements](../cv/requirements.txt). Separate jobs prevent CV
+All workflows use pytest to run their existing pytest/unittest suites and emit
+JUnit XML reports. Each job installs
+[requirements-ci.txt](../requirements-ci.txt); CV additionally installs its
+existing [requirements](../cv/requirements.txt). Separate jobs prevent CV
 dependencies from being required for other modules. Run commands from the
 repository root in an isolated environment:
 
@@ -35,8 +36,8 @@ source .venv/bin/activate
 python -m pip install -r requirements-ci.txt -r cv/requirements.txt
 
 # CV
-python -B -m unittest discover -s tests -p 'test_computer_vision.py' -v
-python -B -m unittest discover -s tests -p 'test_cv*.py' -v
+python -B -m pytest tests/test_computer_vision.py -v
+python -B -m pytest tests/test_cv*.py -v
 
 # Motion
 python -B -m pytest motion_engine/tests -v
@@ -45,17 +46,17 @@ python -B -m pytest motion_engine/tests -v
 python -B -m pytest state_machine/tests motion_engine/tests/test_state_machine_alignment.py -v
 
 # Safety
-python -B -m unittest discover -s tests -p 'test_safety*.py' -v
-python -B -m unittest discover -s tests -p 'test_command_check.py' -v
+python -B -m pytest tests/test_safety*.py -v
+python -B -m pytest tests/test_command_check.py -v
 python -B -m pytest motion_engine/tests/test_safety_adapter.py -v
 
 # Universal Log
 python -B -m pytest motion_engine/tests/test_universal_logging.py -v
 
 # Docking (includes its Safety dependencies)
-python -B -m unittest discover -s tests -p 'test_docking*.py' -v
-python -B -m unittest discover -s tests -p 'test_command_check.py' -v
-python -B -m unittest discover -s tests -p 'test_safety_policy.py' -v
+python -B -m pytest tests/test_docking*.py -v
+python -B -m pytest tests/test_command_check.py -v
+python -B -m pytest tests/test_safety_policy.py -v
 ```
 
 ## Viewing results
@@ -71,3 +72,35 @@ filters too. These are scoped checks: unrelated changes can skip a workflow.
 Do not mark a path-filtered workflow as a universally required branch-protection
 check without accounting for skipped runs. No branch protection is configured
 by this change.
+
+## Downloadable test reports
+
+Every test step writes a separate JUnit XML file under `test-results/`. Reports
+include test names, durations, and failure/error tracebacks. Pytest runs existing
+unittest cases as well as pytest tests; the test files selected by CI are unchanged.
+Docking's tests still use only standard-library/local modules, but its CI job now
+installs pytest as the reporting runner.
+
+An artifact upload runs after the test steps even when a step fails. It does not
+change test exit codes: failing tests still fail the job. Each module/Python
+version/run attempt has its own artifact name, avoiding collisions between matrix
+jobs and reruns. Reports are retained for 14 days, subject to repository policy.
+
+In GitHub, open **Actions → module workflow → run**, then download the ZIP under
+**Artifacts**. Extract it to view the XML locally or import it into a JUnit-aware
+tool. This change provides downloadable files; individual results and tracebacks
+also remain available in the test-step logs.
+
+If setup fails before tests run, or a job is cancelled before reports are written,
+there may be no XML to upload. The upload step warns about missing files instead
+of hiding the original failure. Job-level cancellation/timeouts can prevent an
+upload from completing.
+
+To reproduce reporting locally, append a unique output path to each command:
+
+```bash
+python -B -m pytest tests/test_docking*.py -v --junitxml=test-results/docking.xml
+```
+
+Generated reports and pytest caches are ignored by Git. The upload step includes
+only `test-results/*.xml`, not arbitrary files from the workspace.

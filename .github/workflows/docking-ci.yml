@@ -3,7 +3,8 @@ name: Docking CI
 on:
   pull_request:
     paths:
-      - '.github/workflows/docking-ci.yml'
+      - '.github/workflows/**'
+      - 'requirements-ci.txt'
       - 'docking/**'
       - 'motion_engine/**'
       - 'safety_layer/**'
@@ -15,7 +16,8 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/workflows/docking-ci.yml'
+      - '.github/workflows/**'
+      - 'requirements-ci.txt'
       - 'docking/**'
       - 'motion_engine/**'
       - 'safety_layer/**'
@@ -54,14 +56,26 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      # These suites use only the standard library and local synthetic modules.
+      # pytest also runs unittest cases and emits JUnit XML reports.
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-ci.txt
+
       - name: Run docking tests
-        run: python -B -m unittest discover -s tests -p 'test_docking*.py' -v
+        run: python -B -m pytest tests/test_docking*.py -v --junitxml=test-results/docking-1.xml
 
       - name: Run Safety command-check tests
         if: ${{ !cancelled() }}
-        run: python -B -m unittest discover -s tests -p 'test_command_check.py' -v
+        run: python -B -m pytest tests/test_command_check.py -v --junitxml=test-results/docking-2.xml
 
       - name: Run Safety policy tests
         if: ${{ !cancelled() }}
-        run: python -B -m unittest discover -s tests -p 'test_safety_policy.py' -v
+        run: python -B -m pytest tests/test_safety_policy.py -v --junitxml=test-results/docking-3.xml
+
+      - name: Upload test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: docking-test-reports-python-${{ matrix.python-version }}-attempt-${{ github.run_attempt }}
+          path: test-results/*.xml
+          retention-days: 14
+          if-no-files-found: warn

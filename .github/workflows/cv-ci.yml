@@ -62,8 +62,17 @@ jobs:
 
       - name: CV interface
         if: ${{ !cancelled() }}
-        run: python -B -m unittest discover -s tests -p 'test_computer_vision.py' -v
+        run: python -B -m pytest tests/test_computer_vision.py -v --junitxml=test-results/cv-1.xml
 
       - name: CV perception and benchmark
         if: ${{ !cancelled() }}
-        run: python -B -m unittest discover -s tests -p 'test_cv*.py' -v
+        run: python -B -m pytest tests/test_cv*.py -v --junitxml=test-results/cv-2.xml
+
+      - name: Upload test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: cv-test-reports-python-${{ matrix.python-version }}-attempt-${{ github.run_attempt }}
+          path: test-results/*.xml
+          retention-days: 14
+          if-no-files-found: warn

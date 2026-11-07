@@ -3,3 +3,5 @@ __pycache__/
 test_states/
 .venv
 /cv/synthetic_output/
+/test-results/
+/.pytest_cache/
